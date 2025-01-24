@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @title RebaseToken
@@ -10,26 +12,36 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * @notice The interest rate in this contract can only decrease.
  * @notice Each user will have their own interest rate that is the global interest rate at the time of depositing.
  */
-contract RebaseToken is ERC20 {
+contract RebaseToken is ERC20, Ownable, AccessControl {
     error RebaseToken__InterestRateCanOnlyDecrease(uint256 oldInterestRate, uint256 newInterestRate);
 
     event RebaseToken_InterestRateSet(uint256 newInterestRate);
 
     uint256 private constant PRECISION_FACTOR = 1e18;
+    bytes32 private constant MINT_AND_BURN_ROLE = keccak256("MINT_AND_BURN_ROLE");
 
-    uint256 private s_interestRate = 5e10; // Represents 0.000005% per second (because the base is 10^18, we get the "real" decimal as 5e10 / 1e18 * 100)
+    uint256 private s_interestRate = 5e10;
     mapping(address user => uint256 interestRate) private s_userInterestRate;
     mapping(address user => uint256 lastUpdatedTimestamp) private s_userLastUpdatedTimestamp;
 
-    constructor() ERC20("Rebase Token", "RBT") {}
+    constructor() ERC20("Rebase Token", "RBT") Ownable(msg.sender) {}
+
+    /**
+     * @notice Grant mint and burn role to an account.
+     * @param _account Account for the role.
+     * @dev There is a small vulnerability here, because the owner can grant the role to themselves and start minting and burning tokens. But this is going to be a protocol constraint for this project.
+     */
+    function grantMintAndBurnRole(address _account) external onlyOwner {
+        _grantRole(MINT_AND_BURN_ROLE, _account);
+    }
 
     /**
      * @notice Sets the new interest rate that cannot be more than the old one.
      * @param _newInterestRate New interest rate value.
      * @dev If the new interest rate is more than the old one then the function will revert.
      */
-    function setInterestRate(uint256 _newInterestRate) external {
-        if (_newInterestRate < s_interestRate) {
+    function setInterestRate(uint256 _newInterestRate) external onlyOwner {
+        if (_newInterestRate >= s_interestRate) {
             revert RebaseToken__InterestRateCanOnlyDecrease(s_interestRate, _newInterestRate);
         }
 
@@ -51,7 +63,7 @@ contract RebaseToken is ERC20 {
      * @param _to The user address to which the tokens will be minted.
      * @param _amount Amount of tokens to mint for the user.
      */
-    function mint(address _to, uint256 _amount) external {
+    function mint(address _to, uint256 _amount) external onlyRole(MINT_AND_BURN_ROLE) {
         _mintAccruedInterest(_to);
         s_userInterestRate[_to] = s_interestRate;
 
@@ -64,14 +76,7 @@ contract RebaseToken is ERC20 {
      * @param _from User address.
      * @param _amount The amount of tokens to burn.
      */
-    function burn(address _from, uint256 _amount) external {
-        // This is a "dust" mitigation logic, so that if the user wanted to burn all of their tokens we will do that
-        // and there will be no accrued interest leftover that was accrued while the transaction was confirming.
-        // This is standard practice that is used in protocol like AAVE, for example.
-        if (_amount == type(uint256).max) {
-            _amount = balanceOf(_from);
-        }
-
+    function burn(address _from, uint256 _amount) external onlyRole(MINT_AND_BURN_ROLE) {
         _mintAccruedInterest(_from);
         _burn(_from, _amount);
     }
@@ -144,6 +149,7 @@ contract RebaseToken is ERC20 {
     /**
      * @notice Calculates accumulated interest factor since last update for the user based on their interest rate per second.
      * @param _user The user address.
+     * @return linearInterest Interest factor that has been accumulated since last interaction with protocol.
      */
     function _calculateUserAccumulatedInterestFactorSinceLastUpdate(address _user)
         internal
