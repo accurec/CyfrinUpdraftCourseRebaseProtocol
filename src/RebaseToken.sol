@@ -63,9 +63,9 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
      * @param _to The user address to which the tokens will be minted.
      * @param _amount Amount of tokens to mint for the user.
      */
-    function mint(address _to, uint256 _amount) external onlyRole(MINT_AND_BURN_ROLE) {
+    function mint(address _to, uint256 _amount, uint256 _userInterestRate) external onlyRole(MINT_AND_BURN_ROLE) {
         _mintAccruedInterest(_to);
-        s_userInterestRate[_to] = s_interestRate;
+        s_userInterestRate[_to] = _userInterestRate;
 
         // No need to emit events here ourselves, because _mint will emit an event.
         _mint(_to, _amount);
@@ -96,6 +96,8 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         }
 
         if (balanceOf(_recipient) == 0) {
+            // There is a flaw here, because I could deposit small amount of tokens to capture greater interest rate.
+            // Then later I could deposit bigger amount and transfer that amount to the first wallet, retaining the initial high interest rate.
             s_userInterestRate[_recipient] = s_userInterestRate[msg.sender];
         }
 
@@ -118,6 +120,8 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         }
 
         if (balanceOf(_recipient) == 0) {
+            // There is a flaw here, because I could deposit small amount of tokens to capture greater interest rate.
+            // Then later I could deposit bigger amount and transfer that amount to the first wallet, retaining the initial high interest rate.
             s_userInterestRate[_recipient] = s_userInterestRate[_sender];
         }
 
@@ -129,6 +133,8 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
      * @param _user The user address.
      */
     function balanceOf(address _user) public view override returns (uint256) {
+        // This technically makes interest rate componding in a way, because when interaction happens then the rewards are calculated on
+        // new balance.
         return super.balanceOf(_user) * _calculateUserAccumulatedInterestFactorSinceLastUpdate(_user) / PRECISION_FACTOR;
     }
 
