@@ -31,6 +31,7 @@ contract RebaseTokenPool is TokenPool {
     }
     */
 
+    // This function is going to be called by the CCIP as part of its operation to do token transfer cross-chain
     function lockOrBurn(Pool.LockOrBurnInV1 calldata lockOrBurnIn)
         external
         returns (Pool.LockOrBurnOutV1 memory lockOrBurnOut)
@@ -38,8 +39,7 @@ contract RebaseTokenPool is TokenPool {
         // This is required by CCIP
         _validateLockOrBurn(lockOrBurnIn);
 
-        address receiver = abi.decode(lockOrBurnIn.receiver, (address));
-        uint256 userInterestRate = IRebaseToken(address(i_token)).getUserInterestRate(receiver);
+        uint256 userInterestRate = IRebaseToken(address(i_token)).getUserInterestRate(lockOrBurnIn.originalSender);
         // We're doing "burn(address(this)...)" here, because the way it works is the tokens will be sent to the pool first and then burnt from the pool.
         IRebaseToken(address(i_token)).burn(address(this), /*receiver*/ lockOrBurnIn.amount);
 
@@ -72,6 +72,7 @@ contract RebaseTokenPool is TokenPool {
     }
     */
 
+    // This function is going to be called by the CCIP as part of its operation to do token transfer cross-chain
     function releaseOrMint(Pool.ReleaseOrMintInV1 calldata releaseOrMintIn)
         external
         returns (Pool.ReleaseOrMintOutV1 memory)
