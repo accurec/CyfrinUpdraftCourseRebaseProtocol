@@ -5,8 +5,11 @@ libs = ["lib"]
 
 remappings = [
   '@ccip/contracts=lib/ccip/contracts',
-  '@openzeppelin/contracts=lib/openzeppelin-contracts/contracts'
+  '@openzeppelin/contracts=lib/openzeppelin-contracts/contracts',
+  '@chainlink/local/=lib/chainlink-local/'
 ]
+
+rpc_endpoints = { sepolia-eth = "https://eth-sepolia.g.alchemy.com/v2/4kz2E-vrblsbeCQnilOWN1Y1ZCLb-hV0", arb-sepolia = "https://arb-sepolia.g.alchemy.com/v2/4kz2E-vrblsbeCQnilOWN1Y1ZCLb-hV0" }
 
 fs_permissions = [
     { access = "read", path = "./broadcast" },
