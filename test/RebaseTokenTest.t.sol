@@ -33,7 +33,6 @@ contract RebaseTokenTest is Test {
         vm.deal(user, amount);
         vault.deposit{value: amount}();
         uint256 startingRebaseTokenBalance = rebaseToken.balanceOf(user);
-        console.log("startingRebaseTokenBalance: ", startingRebaseTokenBalance);
         assertEq(amount, startingRebaseTokenBalance);
         vm.warp(block.timestamp + 1 hours);
         uint256 middleBalance = rebaseToken.balanceOf(user);

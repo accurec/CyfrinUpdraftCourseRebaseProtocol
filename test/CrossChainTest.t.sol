@@ -155,9 +155,8 @@ contract CrossChainTest is Test {
         uint256 localBalanceBefore = _localToken.balanceOf(user);
         vm.prank(user);
         IRouterClient(_localNetworkDetails.routerAddress).ccipSend(_remoteNetworkDetails.chainSelector, message);
-        uint256 localBalanceAfter = _localToken.balanceOf(user);
 
-        assertEq(localBalanceAfter, localBalanceBefore - _amountToBridge);
+        assertEq(_localToken.balanceOf(user), localBalanceBefore - _amountToBridge);
         uint256 localUserInterestRate = _localToken.getUserInterestRate(user);
 
         vm.selectFork(_remoteFork);
@@ -177,6 +176,7 @@ contract CrossChainTest is Test {
         vm.prank(user);
         vault.deposit{value: SEND_VALUE}();
         assertEq(sepoliaToken.balanceOf(user), SEND_VALUE);
+
         bridgeTokens(
             SEND_VALUE,
             sepoliaFork,
