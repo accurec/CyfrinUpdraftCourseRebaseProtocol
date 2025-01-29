@@ -125,6 +125,10 @@ contract CrossChainTest is Test {
         TokenPool(_localPool).applyChainUpdates(chainsToAdd);
     }
 
+    // NOTE: too many local wars here, which would make compiler unhappy and ask to run "forge build --via-ir".
+    // This does not work well with "vm.warp" as described here: https://github.com/foundry-rs/foundry/issues/8102.
+    // Tests were not working properly when I tested using "--via-ir", so there is some spots here where we could use
+    // local variable, but not using it to avoid using optimizations.
     function bridgeTokens(
         uint256 _amountToBridge,
         uint256 _localFork,
