@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {IRebaseToken} from "src/interfaces/IRebaseToken.sol";
 
 /**
  * @title RebaseToken
@@ -12,7 +13,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  * @notice The interest rate in this contract can only decrease.
  * @notice Each user will have their own interest rate that is the global interest rate at the time of depositing.
  */
-contract RebaseToken is ERC20, Ownable, AccessControl {
+contract RebaseToken is IRebaseToken, ERC20, Ownable, AccessControl {
     error RebaseToken__InterestRateCanOnlyDecrease(uint256 oldInterestRate, uint256 newInterestRate);
 
     event RebaseToken_InterestRateSet(uint256 newInterestRate);
@@ -132,7 +133,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
      * @notice Calculate the balance of the user including the interest since the last update.
      * @param _user The user address.
      */
-    function balanceOf(address _user) public view override returns (uint256) {
+    function balanceOf(address _user) public view override(ERC20, IRebaseToken) returns (uint256) {
         // This technically makes interest rate componding in a way, because when interaction happens then the rewards are calculated on
         // new balance.
         return super.balanceOf(_user) * _calculateUserAccumulatedInterestFactorSinceLastUpdate(_user) / PRECISION_FACTOR;
