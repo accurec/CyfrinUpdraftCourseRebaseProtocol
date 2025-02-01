@@ -21,13 +21,21 @@ contract TokenPoolDeployerScript is Script {
         pool = new RebaseTokenPool(
             IERC20(address(rebaseToken)), new address[](0), networkDetails.rmnProxyAddress, networkDetails.routerAddress
         );
-        rebaseToken.grantMintAndBurnRole(address(pool));
+        vm.stopBroadcast();
+    }
+}
 
-        RegistryModuleOwnerCustom(networkDetails.registryModuleOwnerCustomAddress).registerAdminViaOwner(
-            address(rebaseToken)
-        );
-        TokenAdminRegistry(networkDetails.tokenAdminRegistryAddress).acceptAdminRole(address(rebaseToken));
-        TokenAdminRegistry(networkDetails.tokenAdminRegistryAddress).setPool(address(rebaseToken), address(pool));
+contract AdminRegistryScript is Script {
+    function run(address _rebaseToken, address _pool) public {
+        CCIPLocalSimulatorFork ccipLocalSimulatorFork = new CCIPLocalSimulatorFork();
+        Register.NetworkDetails memory networkDetails = ccipLocalSimulatorFork.getNetworkDetails(block.chainid);
+
+        vm.startBroadcast();
+        IRebaseToken(_rebaseToken).grantMintAndBurnRole(_pool);
+        RegistryModuleOwnerCustom(networkDetails.registryModuleOwnerCustomAddress).registerAdminViaOwner(_rebaseToken);
+        TokenAdminRegistry adminRegistry = TokenAdminRegistry(networkDetails.tokenAdminRegistryAddress);
+        adminRegistry.acceptAdminRole(address(_rebaseToken));
+        adminRegistry.setPool(_rebaseToken, _pool);
         vm.stopBroadcast();
     }
 }

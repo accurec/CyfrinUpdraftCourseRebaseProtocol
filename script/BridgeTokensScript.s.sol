@@ -10,10 +10,9 @@ import {IERC20} from "@ccip/contracts/src/v0.8/vendor/openzeppelin-solidity/v4.8
 contract BridgeTokensScript is Script {
     function run(
         address receiverAddress,
+        uint64 remoteChainSelector,
         address rebaseToken,
         uint256 rebaseTokenAmount,
-        address ccipRouterAddress,
-        uint64 remoteChainSelector,
         address linkAddress,
         address routerAddress
     ) public {
@@ -32,7 +31,7 @@ contract BridgeTokensScript is Script {
         uint256 bridgeFee = IRouterClient(routerAddress).getFee(remoteChainSelector, message);
         IERC20(linkAddress).approve(routerAddress, bridgeFee);
         IERC20(address(rebaseToken)).approve(routerAddress, rebaseTokenAmount);
-        IRouterClient(ccipRouterAddress).ccipSend(remoteChainSelector, message);
+        IRouterClient(routerAddress).ccipSend(remoteChainSelector, message);
 
         vm.stopBroadcast();
     }
